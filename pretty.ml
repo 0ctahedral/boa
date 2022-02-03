@@ -39,6 +39,25 @@ let rec string_of_expr (e : 'a expr) : string =
              (string_of_expr thn)
              (string_of_expr els)
 
+let rec string_of_expr_tagged (e : int expr) : string =
+  match e with
+  | ENumber(n, t) -> sprintf "%d@%s" t (Int64.to_string n)
+  | EId(x, t) -> sprintf "%d@%s" t x
+  | EPrim1(op, e, t) ->
+     sprintf "%d@%s(%s)" t (string_of_op1 op) (string_of_expr_tagged e)
+  | EPrim2(op, left, right, t) ->
+     sprintf "%d(%s %s %s)" t (string_of_expr_tagged left) (string_of_op2 op) (string_of_expr_tagged right)
+  | ELet(binds, body, t) ->
+     let binds_strs = List.map (fun (x, e, _) -> sprintf "%s = %s" x (string_of_expr_tagged e)) binds in
+     let binds_str = List.fold_left (^) "" (intersperse binds_strs ", ") in
+     sprintf "(%d@let %s in %s)" t binds_str (string_of_expr_tagged body)
+  | EIf(cond, thn, els, t) ->
+     sprintf "(%d@if %s: %s else: %s)"
+             t
+             (string_of_expr_tagged cond)
+             (string_of_expr_tagged thn)
+             (string_of_expr_tagged els)
+
 let string_of_pos ((pstart, pend) : (Lexing.position * Lexing.position)) : string =
   sprintf "%s, %d:%d-%d:%d" pstart.pos_fname pstart.pos_lnum (pstart.pos_cnum - pstart.pos_bol)
           pend.pos_lnum (pend.pos_cnum - pend.pos_bol)

@@ -18,6 +18,10 @@ let te (name : string) (program : string) (expected_err : string) = name>::test_
 let tanf (name : string) (program : 'a expr) (expected : unit expr) = name>::fun _ ->
   assert_equal expected (anf (tag program)) ~printer:string_of_expr;;
 
+(* tests tagging *)
+let ttag (name : string) (program : 'a expr) (expected : tag expr) = name>::fun _ ->
+  assert_equal expected (tag program) ~printer:string_of_expr_tagged;;
+
 (* Checks if two strings are equal *)
 let teq (name : string) (actual : string) (expected : string) = name>::fun _ ->
   assert_equal expected actual ~printer:(fun s -> s);;
@@ -32,7 +36,7 @@ let forty_one = "41";;
 
 let forty_one_a = (ENumber(41L, ()))
 
-let suite =
+(*let suite =
 "suite">:::
  [
 
@@ -66,8 +70,59 @@ let suite =
 
   ]
 ;;
+*)
 
+let tag_suite =
+"tag_suite">:::
+[
+
+  ttag "prim1_tag"
+       (EPrim1(Sub1, ENumber(55L, ()), ()))
+       (EPrim1(Sub1, ENumber(55L, 1), 0));
+
+  ttag "prim2_tag_simple"
+       (EPrim2(Plus, ENumber(42L, ()), ENumber(13L, ()), ()))
+       (EPrim2(Plus, ENumber(42L, 1), ENumber(13L, 2), 0));
+
+  ttag "prim2_tag_nested"
+       (EPrim2(Plus, EPrim2(Minus, ENumber(42L, ()), EId("x", ()), ()), ENumber(13L, ()), ()))
+       (EPrim2(Plus, EPrim2(Minus, ENumber(42L, 2), EId("x", 3), 1), ENumber(13L, 4), 0));
+
+  ttag "let_tag"
+        (ELet([
+          ("a", EPrim2(Minus, EId("b", ()), EId("c", ()), ()), ()); 
+          ("d", EPrim2(Minus, EId("e", ()), EId("f", ()), ()), ()); 
+        ], EPrim2(Minus, EId("a", ()), EId("d", ()), ()), ()))
+        (ELet([
+          ("a", EPrim2(Minus, EId("b", 3), EId("c", 4), 2), 1); 
+          ("d", EPrim2(Minus, EId("e", 7), EId("f", 8), 6), 5); 
+        ], EPrim2(Minus, EId("a", 10), EId("d", 11), 9), 0)) ;
+
+  ttag "if_tag"
+        (EIf(EPrim2(Minus, EId("b", ()), EId("c", ()), ()),
+          EPrim2(Minus, EId("e", ()), EId("f", ()), ()),
+          ENumber(13L, ()), ()))
+        (EIf(EPrim2(Minus, EId("b", 2), EId("c", 3), 1),
+          EPrim2(Minus, EId("e", 5), EId("f", 6), 4),
+          ENumber(13L, 7), 0)) ;
+
+
+]
+;;
+
+let anf_suite =
+"anf_suite">:::
+[
+  tanf "prim1_anf_4410"
+       (EPrim1(Sub1, ENumber(55L, ()), ()))
+       (ELet(["unary_1", EPrim1(Sub1, ENumber(55L, ()), ()), ()],
+             EId("unary_1", ()),
+             ()));
+]
+;;
 
 let () =
-  run_test_tt_main suite
+  (*run_test_tt_main suite*)
+  run_test_tt_main tag_suite
+  run_test_tt_main anf_suite
 ;;

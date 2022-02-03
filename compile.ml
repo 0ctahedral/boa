@@ -25,10 +25,38 @@ let rec check_scope (e : (Lexing.position * Lexing.position) expr) : unit =
   failwith "check_scope: Implement this"
   
 type tag = int
+
+
 (* PROBLEM 2 *)
 (* This function assigns a unique tag to every subexpression and let binding *)
 let tag (e : 'a expr) : tag expr =
-  failwith "tag: Implement this"
+  let rec help (e : 'a expr) (cur : tag) : (tag expr * tag) =
+    match e with
+    | EId(x, _) -> (EId(x, cur), (cur + 1))
+    | ENumber(n, _) -> (ENumber(n, cur), (cur + 1))
+    | EPrim1(op, e, _) ->
+      let (tagged_e, next_tag) = help e (cur + 1) in
+      (EPrim1(op, tagged_e, cur), next_tag)
+    | EPrim2(op, e1, e2, _) ->
+      let (tagged_e1, pass_tag) = help e1 (cur + 1) in
+      let (tagged_e2, next_tag) = help e2 pass_tag in
+      (EPrim2(op, tagged_e1, tagged_e2, cur), next_tag)
+    | ELet(binds, body, _) ->
+      let (bind_next_tag, tagged_binds) = List.fold_left_map(
+        fun cur bind -> 
+          let (x, e, _) = bind in
+          let (tagged_e, next_tag) = help e (cur + 1) in
+          (next_tag, (x, tagged_e, cur))
+      ) (cur + 1) binds in
+      let (tagged_body, next_tag) = (help body bind_next_tag) in
+      (ELet(tagged_binds, tagged_body, cur), next_tag)
+    | EIf(cond, thn, els, _) ->
+      let (tagged_cond, cond_next_tag) = help cond (cur + 1) in
+      let (tagged_thn, thn_next_tag) = help thn cond_next_tag in
+      let (tagged_els, els_next_tag) = help els thn_next_tag in
+       (EIf(tagged_cond, tagged_thn, tagged_els, cur), els_next_tag)
+  in
+  let (tagged, _) = help e 0 in tagged;
 ;;
 
 (* This function removes all tags, and replaces them with the unit value.
