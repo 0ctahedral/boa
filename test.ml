@@ -113,16 +113,26 @@ let tag_suite =
 let anf_suite =
 "anf_suite">:::
 [
-  tanf "prim1_anf_4410"
+
+  tanf "number_anf"
+       (ENumber(55L, ()))
+       (ENumber(55L, ()));
+
+  tanf "prim1_anf"
        (EPrim1(Sub1, ENumber(55L, ()), ()))
-       (ELet(["unary_1", EPrim1(Sub1, ENumber(55L, ()), ()), ()],
-             EId("unary_1", ()),
+       (ELet(["unary_0", EPrim1(Sub1, ENumber(55L, ()), ()), ()],
+             EId("unary_0", ()),
+             ()));
+  tanf "nested_prim1_anf"
+       (EPrim1(Sub1, EPrim1(Add1, ENumber(55L, ()), ()), ()))
+       (ELet(["unary_1", EPrim1(Add1, ENumber(55L, ()), ()), ()],
+         ELet(["unary_0", EPrim1(Sub1, EId("unary_1", ()), ()), ()], EId("unary_0", ()), ()),
              ()));
 ]
 ;;
 
 let () =
   (*run_test_tt_main suite*)
-  run_test_tt_main tag_suite
-  run_test_tt_main anf_suite
+  run_test_tt_main tag_suite;;
+run_test_tt_main anf_suite;;
 ;;

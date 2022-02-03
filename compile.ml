@@ -89,7 +89,31 @@ let rename (e : tag expr) : tag expr =
 (* PROBLEM 4 & 5 *)
 (* This function converts a tagged expression into an untagged expression in A-normal form *)
 let anf (e : tag expr) : unit expr =
-  failwith "anf: Implement this"
+  let rec gen_context (e : tag expr) : (unit expr * (string * unit expr) list) =
+    match e with
+    | ENumber _ | EId _ -> (untag e, [])
+    | EPrim1(op, e, t) ->
+        let (new_e, ectx)  = gen_context e in
+        let id = sprintf "unary_%d" t in
+        (* get the answer and put into a varaible?
+        (EPrim1(op, untag e, ()), [])
+        *)
+        (EId(id, ()), ectx @ [(id, EPrim1(op, new_e, ()))])
+    (*
+    | EPrim2(op, e1, e2, _) ->
+       EPrim2(op, untag e1, untag e2, ())
+    | ELet(binds, body, _) ->
+       ELet(List.map(fun (x, b, _) -> (x, untag b, ())) binds, untag body, ())
+    | EIf(cond, thn, els, _) ->
+       EIf(untag cond, untag thn, untag els, ())
+    *)
+    | _ -> failwith "not yet implemented"
+  in
+  let rec context_to_expr (ans : unit expr) (ctx: (string * unit expr) list) : unit expr =
+    List.fold_right(fun (name, e) ans -> ELet([(name, e, ())], ans, ())) ctx ans
+  in
+  let (ans, ctx) = gen_context e in
+  let final = context_to_expr ans ctx in final
 ;;
 
 
