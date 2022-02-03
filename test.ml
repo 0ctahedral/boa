@@ -123,11 +123,26 @@ let anf_suite =
        (ELet(["unary_0", EPrim1(Sub1, ENumber(55L, ()), ()), ()],
              EId("unary_0", ()),
              ()));
+
   tanf "nested_prim1_anf"
        (EPrim1(Sub1, EPrim1(Add1, ENumber(55L, ()), ()), ()))
        (ELet(["unary_1", EPrim1(Add1, ENumber(55L, ()), ()), ()],
          ELet(["unary_0", EPrim1(Sub1, EId("unary_1", ()), ()), ()], EId("unary_0", ()), ()),
              ()));
+
+  tanf "prim2_anf"
+       (EPrim2(Plus, ENumber(13L, ()), ENumber(55L, ()), ()))
+       (ELet([("binary_0", EPrim2(Plus, ENumber(13L, ()), ENumber(55L, ()), ()), ())],
+          EId("binary_0", ()),
+          ()));
+
+  tanf "nested_prim1_anf"
+       (EPrim2(Plus, ENumber(13L, ()), EPrim1(Add1, ENumber(55L, ()), ()), ()))
+       (ELet([("unary_2", EPrim1(Add1, ENumber(55L, ()), ()), ())],
+          ELet([("binary_0", EPrim2(Plus, ENumber(13L, ()), EId("unary_2", ()), ()), ())],
+            EId("binary_0", ()), ()),
+        ()));
+
 ]
 ;;
 
