@@ -94,20 +94,26 @@ let anf (e : tag expr) : unit expr =
     | ENumber _ | EId _ -> (untag e, [])
     | EPrim1(op, e, t) ->
         let (new_e, e_ctx)  = gen_context e in
-        let id = sprintf "unary_%d" t in
+        let id = sprintf "prim1_%d" t in
           (EId(id, ()), e_ctx @ [(id, EPrim1(op, new_e, ()))])
     | EPrim2(op, e1, e2, t) ->
         let (new_e1, e1_ctx)  = gen_context e1 in
         let (new_e2, e2_ctx)  = gen_context e2 in
-        let id = sprintf "binary_%d" t in
-        (EId(id, ()), e1_ctx @ e2_ctx @ [(id, EPrim2(op, new_e1, new_e2, ()))])
-    (*
+        let id = sprintf "prim2_%d" t in
+          (EId(id, ()), e1_ctx @ e2_ctx @ [(id, EPrim2(op, new_e1, new_e2, ()))])
+    | EIf(cond, thn, els, t) ->
+        let (new_thn, thn_ctx)  = gen_context thn in
+        let (new_els, els_ctx)  = gen_context els in
+        let id = sprintf "if_%d" t in
+          (EId(id, ()), thn_ctx @ els_ctx @ [(id, EIf(untag cond, new_thn, new_els, ()))])
     | ELet(binds, body, _) ->
-       ELet(List.map(fun (x, b, _) -> (x, untag b, ())) binds, untag body, ())
-    | EIf(cond, thn, els, _) ->
-       EIf(untag cond, untag thn, untag els, ())
-    *)
-    | _ -> failwith "not yet implemented"
+        let (new_body, body_ctx) = gen_context body in
+        let (acc_ctx, new_binds) = List.fold_left_map(
+          fun ctx (x, b, _) -> 
+            let (new_b, b_ctx) = gen_context b in
+              (b_ctx @ ctx, (x, new_b, ()))
+        ) [] binds in
+          (ELet(new_binds, new_body, ()), body_ctx @ acc_ctx)
   in
   let rec context_to_expr (ans : unit expr) (ctx: (string * unit expr) list) : unit expr =
     List.fold_right(fun (name, e) ans -> ELet([(name, e, ())], ans, ())) ctx ans
