@@ -22,6 +22,9 @@ let tanf (name : string) (program : 'a expr) (expected : unit expr) = name>::fun
 let ttag (name : string) (program : 'a expr) (expected : tag expr) = name>::fun _ ->
   assert_equal expected (tag program) ~printer:string_of_expr_tagged;;
 
+let tscope (name : string) (program : string) = name>::fun _ ->
+  assert_equal () (check_scope (parse_string name program));;
+
 (* Checks if two strings are equal *)
 let teq (name : string) (actual : string) (expected : string) = name>::fun _ ->
   assert_equal expected actual ~printer:(fun s -> s);;
@@ -72,6 +75,15 @@ let forty_one_a = (ENumber(41L, ()))
 ;;
 *)
 
+let scope_suite =
+"scope_suite">:::
+[
+  tscope "number" "42";
+  tscope "simple_let" "let x = 2 in x";
+  te "variable" "x" "x not in scope at";
+]
+;;
+
 let tag_suite =
 "tag_suite">:::
 [
@@ -120,43 +132,43 @@ let anf_suite =
 
   tanf "prim1_anf"
        (EPrim1(Sub1, ENumber(55L, ()), ()))
-       (ELet(["prim1_0", EPrim1(Sub1, ENumber(55L, ()), ()), ()],
-             EId("prim1_0", ()),
+       (ELet(["$prim1_0", EPrim1(Sub1, ENumber(55L, ()), ()), ()],
+             EId("$prim1_0", ()),
              ()));
 
   tanf "nested_prim1_anf"
        (EPrim1(Sub1, EPrim1(Add1, ENumber(55L, ()), ()), ()))
-       (ELet(["prim1_1", EPrim1(Add1, ENumber(55L, ()), ()), ()],
-         ELet(["prim1_0", EPrim1(Sub1, EId("prim1_1", ()), ()), ()], EId("prim1_0", ()), ()),
+       (ELet(["$prim1_1", EPrim1(Add1, ENumber(55L, ()), ()), ()],
+         ELet(["$prim1_0", EPrim1(Sub1, EId("$prim1_1", ()), ()), ()], EId("$prim1_0", ()), ()),
              ()));
 
   tanf "prim2_anf"
        (EPrim2(Plus, ENumber(13L, ()), ENumber(55L, ()), ()))
-       (ELet([("prim2_0", EPrim2(Plus, ENumber(13L, ()), ENumber(55L, ()), ()), ())],
-          EId("prim2_0", ()),
+       (ELet([("$prim2_0", EPrim2(Plus, ENumber(13L, ()), ENumber(55L, ()), ()), ())],
+          EId("$prim2_0", ()),
           ()));
 
   tanf "nested_prim1_in_prim2_anf"
        (EPrim2(Plus, ENumber(13L, ()), EPrim1(Add1, ENumber(55L, ()), ()), ()))
-       (ELet([("prim1_2", EPrim1(Add1, ENumber(55L, ()), ()), ())],
-          ELet([("prim2_0", EPrim2(Plus, ENumber(13L, ()), EId("prim1_2", ()), ()), ())],
-            EId("prim2_0", ()), ()),
+       (ELet([("$prim1_2", EPrim1(Add1, ENumber(55L, ()), ()), ())],
+          ELet([("$prim2_0", EPrim2(Plus, ENumber(13L, ()), EId("$prim1_2", ()), ()), ())],
+            EId("$prim2_0", ()), ()),
         ()));
 
   tanf "if_anf"
        (EIf(ENumber(0L, ()), ENumber(13L, ()), EPrim1(Add1, ENumber(55L, ()), ()), ()))
-       (ELet([("prim1_3", EPrim1(Add1, ENumber(55L, ()), ()), ())],
-         ELet([("if_0", EIf(ENumber(0L, ()), ENumber(13L, ()), EId("prim1_3", ()), ()), ())],
-            EId("if_0", ()), ()),
+       (ELet([("$prim1_3", EPrim1(Add1, ENumber(55L, ()), ()), ())],
+         ELet([("$if_0", EIf(ENumber(0L, ()), ENumber(13L, ()), EId("$prim1_3", ()), ()), ())],
+            EId("$if_0", ()), ()),
           ()));
 
   tanf "if_nested_more_anf"
        (EIf(ENumber(0L, ()), EPrim2(Times, ENumber(13L, ()), ENumber(13L, ()), ()), EPrim1(Add1, ENumber(55L, ()), ()), ()))
        (
-         ELet([("prim2_2", EPrim2(Times, ENumber(13L, ()), ENumber(13L, ()), ()), ())],
-           ELet([("prim1_5", EPrim1(Add1, ENumber(55L, ()), ()), ())],
-             ELet([("if_0", EIf(ENumber(0L, ()), EId("prim2_2", ()), EId("prim1_5", ()), ()), ())],
-                EId("if_0", ()), ()),
+         ELet([("$prim2_2", EPrim2(Times, ENumber(13L, ()), ENumber(13L, ()), ()), ())],
+           ELet([("$prim1_5", EPrim1(Add1, ENumber(55L, ()), ()), ())],
+             ELet([("$if_0", EIf(ENumber(0L, ()), EId("$prim2_2", ()), EId("$prim1_5", ()), ()), ())],
+                EId("$if_0", ()), ()),
             ()),
           ())
         );
@@ -166,10 +178,30 @@ let anf_suite =
     EPrim1(Add1, EId("x", ()), ()), ()))
 
   (
-    ELet([("prim2_2", EPrim2(Times, ENumber(13L, ()), ENumber(13L, ()), ()), ())],
-      ELet([("x", EId("prim2_2", ()), ())],
-        ELet([("prim1_5", EPrim1(Add1, EId("x", ()), ()), ())],
-          EId("prim1_5", ()),
+    ELet([("$prim2_2", EPrim2(Times, ENumber(13L, ()), ENumber(13L, ()), ()), ())],
+      ELet([("x", EId("$prim2_2", ()), ())],
+        ELet([("$prim1_5", EPrim1(Add1, EId("x", ()), ()), ())],
+          EId("$prim1_5", ()),
+        ()),
+      ()),
+    ())
+          
+    );
+
+  tanf "let_anf2"
+  (ELet([("x", EPrim2(Times, ENumber(13L, ()), ENumber(13L, ()), ()), ());
+          ("y", EPrim2(Times, ENumber(4L, ()), EId("x", ()), ()), ())],
+    EPrim1(Add1, EId("x", ()), ()), ()))
+
+  (
+    ELet([("$prim2_2", EPrim2(Times, ENumber(13L, ()), ENumber(13L, ()), ()), ())],
+      ELet([("x", EId("$prim2_2", ()), ())],
+        ELet([("$prim2_6", EPrim2(Times, ENumber(4L, ()), EId("x", ()), ()), ())],
+          ELet([("y", EId("$prim2_6", ()), ())],
+            ELet([("$prim1_9", EPrim1(Add1, EId("x", ()), ()), ())],
+              EId("$prim1_9", ()),
+            ()),
+          ()),
         ()),
       ()),
     ())
@@ -181,6 +213,7 @@ let anf_suite =
 
 let () =
   (*run_test_tt_main suite*)
+  run_test_tt_main scope_suite;;
   run_test_tt_main tag_suite;;
-run_test_tt_main anf_suite;;
+  run_test_tt_main anf_suite;;
 ;;

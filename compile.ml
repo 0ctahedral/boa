@@ -20,10 +20,34 @@ and is_imm e =
 
 (* PROBLEM 1 *)
 (* This function should encapsulate the binding-error checking from Boa *)
+let rec is_in_env (name: string) (env: string list) : bool =
+  match env with
+    | [] -> false
+    | first::rest -> if name = first then true else (is_in_env name rest)
+
 exception BindingError of string
-let rec check_scope (e : (Lexing.position * Lexing.position) expr) : unit =
-  failwith "check_scope: Implement this"
-  
+let check_scope (e : (Lexing.position * Lexing.position) expr) : unit =
+  let rec check_env (e : (Lexing.position * Lexing.position) expr) (env: string list) : unit =
+    match e with
+      | ENumber(_, _) -> ()
+      | EId(name, pos) -> if (is_in_env name env) then ()
+                          else raise (BindingError (sprintf "%s not in scope at %s" name (string_of_pos pos)))
+      | EPrim1(_, e, _) -> check_env e env
+      | EPrim2(_, e1, e2, _) -> let _ = check_env e1 env in check_env e2 env
+      | ELet(binds, body, _) -> let (acc_env, _) = List.fold_left_map (
+        fun acc_env (x, e, pos) -> if (is_in_env x acc_env) then
+                              raise (BindingError (sprintf "%s already bound in this let expression at %s" x (string_of_pos pos)))
+                                  else
+                                    let _ = check_env e (acc_env @ env) in
+                                    (x::acc_env, ())
+        ) [] binds in
+        check_env body (acc_env @ env)
+      | EIf(cond, thn, els, _) -> let _ = check_env cond env in
+                                    let _ = check_env thn env in
+                                      check_env els env
+  in
+  check_env e []
+ 
 type tag = int
 
 
@@ -94,26 +118,26 @@ let anf (e : tag expr) : unit expr =
     | ENumber _ | EId _ -> (untag e, [])
     | EPrim1(op, e, t) ->
         let (new_e, e_ctx)  = gen_context e in
-        let id = sprintf "prim1_%d" t in
+        let id = sprintf "$prim1_%d" t in
           (EId(id, ()), e_ctx @ [(id, EPrim1(op, new_e, ()))])
     | EPrim2(op, e1, e2, t) ->
         let (new_e1, e1_ctx)  = gen_context e1 in
         let (new_e2, e2_ctx)  = gen_context e2 in
-        let id = sprintf "prim2_%d" t in
+        let id = sprintf "$prim2_%d" t in
           (EId(id, ()), e1_ctx @ e2_ctx @ [(id, EPrim2(op, new_e1, new_e2, ()))])
     | EIf(cond, thn, els, t) ->
         let (new_thn, thn_ctx)  = gen_context thn in
         let (new_els, els_ctx)  = gen_context els in
-        let id = sprintf "if_%d" t in
+        let id = sprintf "$if_%d" t in
           (EId(id, ()), thn_ctx @ els_ctx @ [(id, EIf(untag cond, new_thn, new_els, ()))])
     | ELet(binds, body, _) ->
         let (new_body, body_ctx) = gen_context body in
-        let (acc_ctx, new_binds) = List.fold_left_map(
+        let (acc_ctx, _) = List.fold_left_map(
           fun ctx (x, b, _) -> 
-            let (new_b, b_ctx) = gen_context b in
-              (b_ctx @ ctx, (x, new_b, ()))
+            let (new_b, bind_ctx) = gen_context b in
+            (ctx @ bind_ctx @ [(x, new_b)], ())
         ) [] binds in
-          (ELet(new_binds, new_body, ()), body_ctx @ acc_ctx)
+          (new_body, acc_ctx @ body_ctx)
   in
   let rec context_to_expr (ans : unit expr) (ctx: (string * unit expr) list) : unit expr =
     List.fold_right(fun (name, e) ans -> ELet([(name, e, ())], ans, ())) ctx ans
