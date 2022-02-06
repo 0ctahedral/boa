@@ -92,6 +92,7 @@ let scope_suite =
   tscope "multiple_bind2" "let x = 3, y = 4 in let z = 5 in x + y * z";
   te "invalid_multiple_bind" "let x = 3, y = 4, x = 5 in x - y" "x already bound in this let expression at";
   tscope "shadow" "let x = 3 in let x = 4 in x";
+  tscope "if" "let x = if 0: 4 else: 5 in add1(x)";
 ]
 ;;
 
