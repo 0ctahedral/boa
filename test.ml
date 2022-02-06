@@ -81,6 +81,17 @@ let scope_suite =
   tscope "number" "42";
   tscope "simple_let" "let x = 2 in x";
   te "variable" "x" "x not in scope at";
+  tscope "prim1" "add1(2)";
+  tscope "prim1_2" "sub1(2)";
+  tscope "prim2" "2 + 3";
+  tscope "let_op" "let x = 2 in 2 + x";
+  tscope "let_op2" "let x = 3 in let y = 8 in x + y";
+  te "invalid_bind" "let y = x in y" "x not in scope at";
+  te "invalid_body" "let x = 3 in y" "y not in scope at";
+  tscope "multiple_bind" "let x = 3, y = 4 in x * y";
+  tscope "multiple_bind2" "let x = 3, y = 4 in let z = 5 in x + y * z";
+  te "invalid_multiple_bind" "let x = 3, y = 4, x = 5 in x - y" "x already bound in this let expression at";
+  tscope "shadow" "let x = 3 in let x = 4 in x";
 ]
 ;;
 
