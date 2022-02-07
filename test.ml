@@ -247,10 +247,25 @@ let anf_suite =
 ]
 ;;
 
+
+let compile_suite =
+"anf_suite">:::
+[
+  t "number5" "5" "5";
+  t "add_numbers" "5 + 4" "9";
+  t "let" "let x = (5 + 4) in x" "9";
+  t "let_twice" "let x = (5 + 4), y = (x * 2) in y" "18";
+  t "let_shadow" "let x = (5 + 4) in let x = 7 in x" "7";
+  t "rename" "(let x = 3 in x) - (let x = 5 in x)" "-2";
+
+]
+;;
+
 let () =
   (*run_test_tt_main suite*)
   run_test_tt_main scope_suite;;
   run_test_tt_main tag_suite;;
   run_test_tt_main rename_suite;;
   run_test_tt_main anf_suite;;
+  run_test_tt_main compile_suite;;
 ;;

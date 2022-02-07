@@ -141,6 +141,7 @@ let anf (e : tag expr) : unit expr =
         let id = sprintf "$prim2_%d" t in
           (EId(id, ()), e1_ctx @ e2_ctx @ [(id, EPrim2(op, new_e1, new_e2, ()))])
     | EIf(cond, thn, els, t) ->
+        (* TODO: anf the condition *)
         let (new_thn, thn_ctx)  = gen_context thn in
         let (new_els, els_ctx)  = gen_context els in
         let id = sprintf "$if_%d" t in
@@ -222,11 +223,35 @@ let rec compile_expr (e : tag expr) (si : int) (env : (string * int) list) : ins
        ]
      end
   | EPrim2(op, left, right, _) ->
-     failwith "compile_expr:eprim2: Implement this"
+      begin match op with
+      | Plus  -> [
+        IMov(Reg(RAX), compile_imm left env);
+        IAdd(Reg(RAX), compile_imm right env)
+      ]
+      | Minus -> [
+        IMov(Reg(RAX), compile_imm left env);
+        ISub(Reg(RAX), compile_imm right env)
+      ]
+      | Times -> [
+        IMov(Reg(RAX), compile_imm left env);
+        IMul(Reg(RAX), compile_imm right env)
+      ]
+      end
   | EIf(cond, thn, els, tag) ->
-     failwith "compile_expr:eif: Implement this"
+      let tlabel = sprintf "%d_true" tag in
+      (compile_expr cond si env) @
+      [(*compare to zero, jump*)
+        ICmp(Reg(RAX), Const(0L));
+        IJe(tlabel)
+      ] @
+      [(*els label and condition, jump to done*)] @
+      [(*thn label and condition*)] @
+      [(*done label*)]
   | ELet([id, e, _], body, _) ->
-     failwith "compile_expr:elet: Implement this"
+      (compile_expr e (si + 1) env) @
+      [
+        IMov(RegOffset(-si, RSP), Reg(RAX));
+      ] @ (compile_expr body (si + 1) ((id, si) :: env))
   | _ -> failwith "Impossible: Not in ANF"
 and compile_imm e env =
   match e with
@@ -250,8 +275,10 @@ let compile_to_string prog =
   let tagged : tag expr = tag prog in
   let renamed : tag expr = rename tagged in
   let anfed : tag expr = tag (anf renamed) in
-  (* printf "Prog:\n%s\n" (ast_of_expr prog); *)
-  (* printf "Tagged:\n%s\n" (format_expr tagged string_of_int); *)
-  (* printf "ANFed/tagged:\n%s\n" (format_expr anfed string_of_int); *)
+  (*
+  printf "Prog:\n%s\n" (ast_of_expr prog);
+  printf "Tagged:\n%s\n" (format_expr tagged string_of_int);
+  printf "ANFed/tagged:\n%s\n" (format_expr anfed string_of_int);
+  *)
   compile_anf_to_string anfed
 
