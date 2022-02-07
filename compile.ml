@@ -238,15 +238,28 @@ let rec compile_expr (e : tag expr) (si : int) (env : (string * int) list) : ins
       ]
       end
   | EIf(cond, thn, els, tag) ->
-      let tlabel = sprintf "%d_true" tag in
+      let thn_label = sprintf "if_thn_%d" tag in
+      let els_label = sprintf "if_els_%d" tag in
+      let done_label = sprintf "if_done_%d" tag in
       (compile_expr cond si env) @
-      [(*compare to zero, jump*)
+      (*compare to zero, jump*)
+      [
         ICmp(Reg(RAX), Const(0L));
-        IJe(tlabel)
+        IJne(thn_label);
       ] @
-      [(*els label and condition, jump to done*)] @
-      [(*thn label and condition*)] @
-      [(*done label*)]
+
+      (*els label and condition, jump to done*)
+      [ ILabel(els_label); ] @
+      (compile_expr els si env) @
+      [ IJmp(done_label); ] @
+
+      (*thn label and condition*)
+      [ ILabel(thn_label); ] @
+      (compile_expr thn si env) @
+      (*done label*)
+      [
+        ILabel(done_label);
+      ]
   | ELet([id, e, _], body, _) ->
       (compile_expr e (si + 1) env) @
       [

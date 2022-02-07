@@ -46,42 +46,6 @@ let forty_one = "41";;
 
 let forty_one_a = (ENumber(41L, ()))
 
-(*let suite =
-"suite">:::
- [
-
-  tanf "forty_one_anf"
-       (ENumber(41L, ()))
-       forty_one_a;
-
-  (* For CS4410 students, with unnecessary let-bindings *)
-  tanf "prim1_anf_4410"
-       (EPrim1(Sub1, ENumber(55L, ()), ()))
-       (ELet(["unary_1", EPrim1(Sub1, ENumber(55L, ()), ()), ()],
-             EId("unary_1", ()),
-             ()));
-
-  (* For CS6410 students, with optimized let-bindings *)
-  tanf "prim1_anf_6410"
-       (EPrim1(Sub1, ENumber(55L, ()), ()))
-       (EPrim1(Sub1, ENumber(55L, ()), ()));
-
-  ta "forty_one_run_anf" (tag forty_one_a) "41";
- 
-  t "forty_one" forty_one "41";
-
-
-  tprog "test1.boa" "3";
-      
-    (* Some useful if tests to start you off *)
-
-  t "if1" "if 5: 4 else: 2" "4";
-  t "if2" "if 0: 4 else: 2" "2";
-
-  ]
-;;
-*)
-
 let scope_suite =
 "scope_suite">:::
 [
@@ -257,7 +221,9 @@ let compile_suite =
   t "let_twice" "let x = (5 + 4), y = (x * 2) in y" "18";
   t "let_shadow" "let x = (5 + 4) in let x = 7 in x" "7";
   t "rename" "(let x = 3 in x) - (let x = 5 in x)" "-2";
-
+  t "true_if" "if 13 : 21 else: 0" "21";
+  t "false_if" "if 0 : 21 else: 0" "0";
+  t "var_to_if" "let x = 3, y = (if add1(x) : 12 else: 4) in x + y" "15";
 ]
 ;;
 
