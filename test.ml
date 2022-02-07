@@ -14,6 +14,10 @@ let ta (name : string) (program : tag expr) (expected : string) = name>::test_ru
 (* Runs a program, given as a source string, and compares its error to expected *)
 let te (name : string) (program : string) (expected_err : string) = name>::test_err program name expected_err;;
 
+(* Performs scope checking on the program given as a source string and passes if there are no errors *)
+let tscope (name : string) (program : string) = name>::fun _ ->
+  assert_equal () (check_scope (parse_string name program));;
+
 (* Transforms a program into ANF, and compares the output to expected *)
 let tanf (name : string) (program : 'a expr) (expected : unit expr) = name>::fun _ ->
   assert_equal expected (anf (tag program)) ~printer:string_of_expr;;
@@ -22,8 +26,11 @@ let tanf (name : string) (program : 'a expr) (expected : unit expr) = name>::fun
 let ttag (name : string) (program : 'a expr) (expected : tag expr) = name>::fun _ ->
   assert_equal expected (tag program) ~printer:string_of_expr_tagged;;
 
-let tscope (name : string) (program : string) = name>::fun _ ->
-  assert_equal () (check_scope (parse_string name program));;
+(* Renames variables in a program, given as a source string, and compares it to the output expected, ignoring tags *)
+let trename (name : string) (program : string) (expected : unit expr) = name>::fun _ ->
+  let p = (parse_string name program) in
+  let _ = (check_scope p) in
+  assert_equal expected (untag (rename (tag p))) ~printer:string_of_expr;;
 
 (* Checks if two strings are equal *)
 let teq (name : string) (actual : string) (expected : string) = name>::fun _ ->
@@ -131,6 +138,13 @@ let tag_suite =
           ENumber(13L, 7), 0)) ;
 
 
+]
+;;
+
+let rename_suite =
+"rename_suite">:::
+[
+  trename "number" "4" (ENumber(4L, ()));
 ]
 ;;
 

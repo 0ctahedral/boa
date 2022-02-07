@@ -99,14 +99,23 @@ let rec untag (e : 'a expr) : unit expr =
      EIf(untag cond, untag thn, untag els, ())
 ;;
 
+let rec find ls x =
+  match ls with
+  | [] -> failwith (sprintf "Name %s not found" x)
+  | (y,v)::rest ->
+     if y = x then v else find rest x
+
 (* PROBLEM 3 *)
 let rename (e : tag expr) : tag expr =
   let rec help (env : (string * string) list) (e : tag expr) =
     match e with
-    | EId(x, tag) -> EId(failwith "implement this", tag)
+    | EId(x, tag) -> EId((find env x), tag)
+    | ENumber(n, tag) -> ENumber(n, tag)
+    | EPrim1(op, e, tag) -> EPrim1(op, (help env e), tag)
+    | EPrim2(op, e1, e2, tag) -> EPrim2(op, (help env e1), (help env e2), tag)
     | ELet(binds, body, tag) ->
        failwith "Extend env by renaming each binding in binds, then rename the expressions and body"
-    | _ -> failwith "finish the other cases recursively"
+    | EIf(cond, thn, els, tag) -> EIf((help env cond), (help env thn), (help env els), tag)
   in help [] e
 ;;
 
@@ -176,11 +185,7 @@ let i_to_asm (i : instruction) : string =
 let to_asm (is : instruction list) : string =
   List.fold_left (fun s i -> sprintf "%s\n%s" s (i_to_asm i)) "" is
 
-let rec find ls x =
-  match ls with
-  | [] -> failwith (sprintf "Name %s not found" x)
-  | (y,v)::rest ->
-     if y = x then v else find rest x
+
 
 (* PROBLEM 5 *)
 (* This function actually compiles the tagged ANF expression into assembly *)
