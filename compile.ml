@@ -113,8 +113,14 @@ let rename (e : tag expr) : tag expr =
     | ENumber(n, tag) -> ENumber(n, tag)
     | EPrim1(op, e, tag) -> EPrim1(op, (help env e), tag)
     | EPrim2(op, e1, e2, tag) -> EPrim2(op, (help env e1), (help env e2), tag)
-    | ELet(binds, body, tag) ->
-       failwith "Extend env by renaming each binding in binds, then rename the expressions and body"
+    | ELet(binds, body, tag) -> let (new_env, new_binds) = List.fold_left_map(
+      fun env (x, e, x_tag) -> let new_x = sprintf "%s#%d" x x_tag in
+                                let new_env = (x, new_x)::env in
+                                let new_e = help new_env e in
+                                (new_env, (new_x, new_e, x_tag))
+      ) env binds in
+      let new_body = help new_env body in
+      ELet(new_binds, new_body, tag)
     | EIf(cond, thn, els, tag) -> EIf((help env cond), (help env thn), (help env els), tag)
   in help [] e
 ;;
@@ -178,9 +184,17 @@ let i_to_asm (i : instruction) : string =
      sprintf "  mov %s, %s" (arg_to_asm dest) (arg_to_asm value)
   | IAdd(dest, to_add) ->
      sprintf "  add %s, %s" (arg_to_asm dest) (arg_to_asm to_add)
-  | IRet ->
-     "  ret"
-  | _ -> failwith "i_to_asm: Implement this"
+  | ISub(dest, to_sub) ->
+     sprintf "  sub %s, %s" (arg_to_asm dest) (arg_to_asm to_sub)
+  | IMul(dest, to_mul) ->
+     sprintf "  imul %s, %s" (arg_to_asm dest) (arg_to_asm to_mul)
+  | ILabel(label) -> sprintf "%s:" label 
+  | ICmp(dest, src) ->
+      sprintf "  cmp %s, %s" (arg_to_asm dest) (arg_to_asm src)
+  | IJne(label) -> sprintf "  jne %s" label
+  | IJe(label) -> sprintf "  je %s" label
+  | IJmp(label) -> sprintf "  jmp %s" label
+  | IRet -> "  ret"
 
 let to_asm (is : instruction list) : string =
   List.fold_left (fun s i -> sprintf "%s\n%s" s (i_to_asm i)) "" is

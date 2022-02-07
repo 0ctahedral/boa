@@ -145,6 +145,16 @@ let rename_suite =
 "rename_suite">:::
 [
   trename "number" "4" (ENumber(4L, ()));
+  trename "simple_let" "let x = 2 in x" (ELet([("x#1", ENumber(2L, ()), ())], EId("x#1", ()), ()));
+  trename "shadow_let" "let x = 3 in let x = 2 in x"
+      (ELet([("x#1", ENumber(3L, ()), ())],
+        ELet([("x#4", ENumber(2L, ()), ())], EId("x#4", ()), ()),
+        ()));
+  trename "op" "(let x = 3 in x) + (let x = 5 in x)"
+      (EPrim2(Plus,
+      ELet([("x#2", ENumber(3L, ()), ())], EId("x#2", ()), ()),
+      ELet([("x#6", ENumber(5L, ()), ())], EId("x#6", ()), ()),
+      ()));
 ]
 ;;
 
@@ -241,5 +251,6 @@ let () =
   (*run_test_tt_main suite*)
   run_test_tt_main scope_suite;;
   run_test_tt_main tag_suite;;
+  run_test_tt_main rename_suite;;
   run_test_tt_main anf_suite;;
 ;;
